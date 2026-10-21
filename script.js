@@ -2,9 +2,11 @@
 const boardElement = document.getElementById('board');
 const newGameBtn = document.getElementById('newGameBtn');
 const restartBtn = document.getElementById('restartBtn');
-const hintBtn = document.getElementById('hintBtn');
+const solveBtn = document.getElementById('solveBtn');
+const showHintBtn = document.getElementById('showHintBtn');
 const timerElement = document.getElementById('timer');
 const stepCountElement = document.getElementById('stepCount');
+
 
 let state = [1, 2, 3, 4, 5, 6, 7, 8, 0];
 let initialState = [...state];
@@ -43,7 +45,7 @@ function stopAI() {
     }
 
     isSolving = false;
-    hintBtn.disabled = false;
+    solveBtn.disabled = false;
 }
 
 function render() {
@@ -139,7 +141,34 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// A* AI Solver
+
+
+function showHint() {
+    if (isSolving) return;
+
+    if (isEqual(state, goalState)) {
+        alert('Puzzle sudah selesai!');
+        return;
+    }
+
+    const solution = aStarSearch([...state]);
+
+    if (!solution || solution.length === 0) {
+        alert('Solusi tidak ditemukan.');
+        return;
+    }
+
+    const nextBoard = solution[0];
+    const zeroIdx = getZeroIndex(state);
+    const tileIdx = nextBoard.indexOf(0);
+
+    const tileValue = state[tileIdx];
+
+    alert(`💡 Hint: Pindahkan ubin ${tileValue} ke kotak kosong!`);
+}
+
+
+//A*
 function solveAStar() {
     if (isSolving) return;
 
@@ -149,7 +178,7 @@ function solveAStar() {
     }
 
     isSolving = true;
-    hintBtn.disabled = true;
+    solveBtn.disabled = true;
 
     startTimer();
     const solution = aStarSearch([...state]);
@@ -172,7 +201,7 @@ function solveAStar() {
             clearInterval(aiInterval);
             aiInterval = null;
             isSolving = false;
-            hintBtn.disabled = false;
+            solveBtn.disabled = false;
             checkWin();
         }
     }, 350);
@@ -245,6 +274,7 @@ function checkWin() {
 
 newGameBtn.addEventListener('click', newGame);
 restartBtn.addEventListener('click', restartPuzzle);
-hintBtn.addEventListener('click', solveAStar);
+solveBtn.addEventListener('click', solveAStar);
+showHintBtn.addEventListener('click', showHint);
 
 newGame();
