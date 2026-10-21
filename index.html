@@ -1,39 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Game Hub - 8-Puzzle A* Solver</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sliding Puzzle dengan Bot A*</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="navbar">
-        <div class="logo">🧩 Puzzle Game</div>
-    </header>
+  <main>
+    <h1>Puzzle Hub</h1>
+    <p class="sub">Pindahkan ubin, selesaikan teka-teki geser 3x3, kalahkan waktu terbaik Anda, dan coba permainan asah otak lainnya seperti 15 Puzzle, 24 Puzzle.</p>
 
-    <main class="main-container">
-        <h1>8-Puzzle Solver.</h1>
+    <div class="levels" id="levels">
+      <button data-n="3" class="on">3×3 Mudah</button>
+      <button data-n="4">4×4 Sedang</button>
+      <button data-n="5">5×5 Sulit</button>
+    </div>
 
+    <div class="stats">
+      <div class="stat"><b id="moves">0</b><span>Langkah</span></div>
+      <div class="stat"><b id="time">0:00</b><span>Waktu</span></div>
+      <div class="stat"><b id="best">–</b><span>Terbaik</span></div>
+    </div>
 
-        <div class="stats-bar">
-            <div class="stat-item" id="timer">⏱️ 00:00</div>
-            <div class="stat-item" id="stepCount">👆 0</div>
-        </div>
+    <div id="board" role="grid" aria-label="Papan puzzle"></div>
+    <div id="msg" aria-live="polite"></div>
 
-        <div class="board-wrapper">
-            <div class="board" id="board"></div>
-        </div>
+    <div class="btns">
+      <button id="hintBtn">Show Hint</button>
+      <button id="autoBtn">Auto Play</button>
+      <button id="newBtn">Game Baru</button>
+    </div>
 
-        <div class="controls">
-            <button id="newGameBtn" class="action-btn">🔀 New Game</button>
-            <button id="restartBtn" class="action-btn">🔄 Restart Puzzle</button>
-            <button id="showHintBtn" class="action-btn">💡 Show Hint</button>
-            <button id="solveBtn" class="action-btn primary">💡 Solve with A*</button>
-        </div>
-        
-        <p class="tip">Tip: Gunakan tombol panah (arrow keys) di keyboard untuk memindahkan ubin.</p>
-    </main>
+    <p class="tip">Klik tile di samping kotak kosong. Bot memakai A* dengan Manhattan Distance (optimal di 3×3, pendekatan di 4×4 dan 5×5). Waktu terbaik tidak tersimpan kalau memakai Auto Play.</p>
+  </main>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
