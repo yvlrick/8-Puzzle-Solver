@@ -1,280 +1,347 @@
+const CFG = {
+  3: { walk: 60, w: 1, ms: 450, fs: '2.2rem' },
+  4: { walk: 45, w: 2, ms: 300, fs: '1.8rem' },
+  5: { walk: 55, w: 3, ms: 220, fs: '1.4rem' }
+};
 
-const boardElement = document.getElementById('board');
-const newGameBtn = document.getElementById('newGameBtn');
-const restartBtn = document.getElementById('restartBtn');
-const solveBtn = document.getElementById('solveBtn');
-const showHintBtn = document.getElementById('showHintBtn');
-const timerElement = document.getElementById('timer');
-const stepCountElement = document.getElementById('stepCount');
+let N = 3, SOLVED, board, moves, start, timer, done;
+let hintOn = false, hintPos = -1, path = null;
+let auto = false, botUsed = false, tiles = {}, gid = 0;
 
+const $ = (id) => document.getElementById(id);
+const boardEl = $('board');
 
-let state = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-let initialState = [...state];
-const goalState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-let steps = 0;
-let timer = null;
-let seconds = 0;
-let gameStarted = false;
-let aiInterval = null;
-let isSolving = false;
-
-function startTimer() {
-    if (!gameStarted) {
-        gameStarted = true;
-        seconds = 0;
-        clearInterval(timer);
-        timer = setInterval(() => {
-            seconds++;
-            let mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-            let secs = (seconds % 60).toString().padStart(2, '0');
-            timerElement.textContent = `⏱️ ${mins}:${secs}`;
-        }, 1000);
-    }
+/* ---------- Utilitas ---------- */
+function nbrs(z) {
+  const r = [], x = z % N, y = (z / N) | 0;
+  if (y > 0) r.push(z - N);
+  if (y < N - 1) r.push(z + N);
+  if (x > 0) r.push(z - 1);
+  if (x < N - 1) r.push(z + 1);
+  return r;
 }
 
-function stopTimer() {
-    clearInterval(timer);
-    timer = null;
-    gameStarted = false;
+const key = (b) => b.map((v) => String.fromCharCode(65 + v)).join('');
+
+function fmt(s) {
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-function stopAI() {
-    if (aiInterval !== null) {
-        clearInterval(aiInterval);
-        aiInterval = null;
-    }
+function getBest() {
+  try { return +localStorage.getItem('best_' + N) || 0; } catch (e) { return 0; }
+}
 
-    isSolving = false;
-    solveBtn.disabled = false;
+function setBest(v) {
+  try { localStorage.setItem('best_' + N, v); } catch (e) {}
+}
+
+function setMsg(t, win) {
+  const m = $('msg');
+  m.textContent = t;
+  m.className = win ? 'win' : '';
+}
+
+/* Warna tombol: menyala sesuai status */
+function updateButtons() {
+  $('hintBtn').textContent = hintOn ? 'Hide Hint' : 'Show Hint';
+  $('autoBtn').textContent = auto ? 'Stop' : 'Auto Play';
+}
+
+/* ---------- Papan ---------- */
+function buildBoard() {
+  boardEl.innerHTML = '';
+  tiles = {};
+  boardEl.style.setProperty('--fs', CFG[N].fs);
+  for (let n = 1; n < N * N; n++) {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    t.style.width = t.style.height = 100 / N + '%';
+    t.innerHTML = '<div>' + n + '</div>';
+    t.addEventListener('click', () => tryMove(board.indexOf(n)));
+    boardEl.appendChild(t);
+    tiles[n] = t;
+  }
+}
+
+function shuffle() {
+  const b = SOLVED.slice();
+  let z = N * N - 1, prev = -1;
+  for (let i = 0; i < CFG[N].walk; i++) {
+    const o = nbrs(z).filter((p) => p !== prev);
+    const p = o[Math.floor(Math.random() * o.length)];
+    b[z] = b[p];
+    b[p] = 0;
+    prev = z;
+    z = p;
+  }
+  return key(b) === key(SOLVED) ? shuffle() : b;
 }
 
 function render() {
-    boardElement.innerHTML = '';
-    state.forEach((val, idx) => {
-        const tile = document.createElement('div');
-        tile.classList.add('tile');
-        if (val === 0) {
-            tile.classList.add('empty');
-        } else {
-            tile.textContent = val;
-            tile.addEventListener('click', () => {
-                if (isSolving) return;
-                startTimer();
-                moveTile(idx);
-            });
-        }
-        boardElement.appendChild(tile);
-    });
-    stepCountElement.textContent = `👆 ${steps}`;
-}
-
-function getZeroIndex(currentBoard) {
-    return currentBoard.indexOf(0);
-}
-
-function moveTile(idx) {
-    if (isSolving) return;
-
-    const zeroIdx = getZeroIndex(state);
-    if (isValidMove(idx, zeroIdx)) {
-        [state[idx], state[zeroIdx]] = [state[zeroIdx], state[idx]];
-        steps++;
-        render();
-        checkWin();
-    }
-}
-
-function isValidMove(idx1, idx2) {
-    const r1 = Math.floor(idx1 / 3), c1 = idx1 % 3;
-    const r2 = Math.floor(idx2 / 3), c2 = idx2 % 3;
-    return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+  for (let i = 0; i < N * N; i++) {
+    const n = board[i];
+    if (!n) continue;
+    const t = tiles[n];
+    t.style.left = ((i % N) * 100) / N + '%';
+    t.style.top = (((i / N) | 0) * 100) / N + '%';
+    t.classList.toggle('hint', hintOn && !done && i === hintPos);
+  }
+  $('moves').textContent = moves;
+  const b = getBest();
+  $('best').textContent = b ? fmt(b) : '–';
 }
 
 function newGame() {
-    stopAI();
-    stopTimer();
-    seconds = 0;
-    timerElement.textContent = `⏱️ 00:00`;
-    steps = 0;
-    
-    // Acak puzzle secara valid
-    for (let i = 0; i < 150; i++) {
-        const zeroIdx = getZeroIndex(state);
-        const validNeighbors = [];
-        for (let j = 0; j < 9; j++) {
-            if (isValidMove(j, zeroIdx)) validNeighbors.push(j);
-        }
-        const randomIdx = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
-        [state[randomIdx], state[zeroIdx]] = [state[zeroIdx], state[randomIdx]];
+  stopAuto();
+  gid++;
+  path = null;
+  botUsed = false;
+  hintPos = -1;
+  board = shuffle();
+  moves = 0;
+  done = false;
+  start = 0;
+  clearInterval(timer);
+  $('time').textContent = '0:00';
+  setMsg('');
+  render();
+  updateHint();
+}
+
+function setLevel(n) {
+  N = n;
+  SOLVED = [...Array(N * N - 1).keys()].map((i) => i + 1).concat(0);
+  document.querySelectorAll('#levels button').forEach((b) =>
+    b.classList.toggle('on', +b.dataset.n === n)
+  );
+  buildBoard();
+  newGame();
+}
+
+function tryMove(i, bot) {
+  if (done) return;
+  const z = board.indexOf(0);
+  if (!nbrs(z).includes(i)) return;
+  if (!bot) stopAuto();
+
+  if (!start) {
+    start = Date.now();
+    timer = setInterval(() => {
+      $('time').textContent = fmt(Math.floor((Date.now() - start) / 1000));
+    }, 250);
+  }
+
+  if (path && path[0] === i) path.shift();
+  else path = null;
+
+  board[z] = board[i];
+  board[i] = 0;
+  moves++;
+  hintPos = -1;
+
+  /* Hint sekali pakai: mati otomatis setelah 1 langkah */
+  if (hintOn) {
+    hintOn = false;
+    updateButtons();
+    if (!auto) setMsg('');
+  }
+
+  if (key(board) === key(SOLVED)) {
+    done = true;
+    stopAuto();
+    clearInterval(timer);
+    const s = Math.floor((Date.now() - start) / 1000);
+    $('time').textContent = fmt(s);
+    if (botUsed) {
+      setMsg('🤖 Bot menyelesaikan puzzle dalam ' + moves + ' langkah, ' + fmt(s) + '.', true);
+    } else {
+      const b = getBest();
+      if (!b || s < b) setBest(s);
+      setMsg('🎉 Selesai dalam ' + moves + ' langkah, ' + fmt(s) + '!', true);
     }
-    initialState = [...state]; // Simpan state awal untuk tombol restart
-    render();
+  } else {
+    updateHint();
+  }
+  render();
 }
 
-function restartPuzzle() {
-    stopAI();
-    stopTimer();
-    seconds = 0;
-    timerElement.textContent = `⏱️ 00:00`;
-    steps = 0;
-    state = [...initialState];
-    render();
-}
-
-// Kontrol Keyboard (Arrow keys)
 document.addEventListener('keydown', (e) => {
-    if (isSolving) return;
-
-    const zeroIdx = getZeroIndex(state);
-    let targetIdx = -1;
-    const r = Math.floor(zeroIdx / 3);
-    const c = zeroIdx % 3;
-
-    if (e.key === 'ArrowUp' && r < 2) targetIdx = zeroIdx + 3;
-    if (e.key === 'ArrowDown' && r > 0) targetIdx = zeroIdx - 3;
-    if (e.key === 'ArrowLeft' && c < 2) targetIdx = zeroIdx + 1;
-    if (e.key === 'ArrowRight' && c > 0) targetIdx = zeroIdx - 1;
-
-    if (targetIdx !== -1) {
-        startTimer();
-        moveTile(targetIdx);
-    }
+  const d = { ArrowUp: N, ArrowDown: -N, ArrowLeft: 1, ArrowRight: -1 }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  const z = board.indexOf(0), i = z + d;
+  if (i < 0 || i >= N * N) return;
+  if (Math.abs(d) === 1 && ((i / N) | 0) !== ((z / N) | 0)) return;
+  tryMove(i);
 });
 
-
-
-function showHint() {
-    if (isSolving) return;
-
-    if (isEqual(state, goalState)) {
-        alert('Puzzle sudah selesai!');
-        return;
+/* ---------- A* (Manhattan Distance + min-heap) ---------- */
+function manh(b) {
+  let h = 0;
+  for (let i = 0; i < N * N; i++) {
+    const v = b[i];
+    if (v) {
+      const g = v - 1;
+      h += Math.abs((i % N) - (g % N)) + Math.abs(((i / N) | 0) - ((g / N) | 0));
     }
-
-    const solution = aStarSearch([...state]);
-
-    if (!solution || solution.length === 0) {
-        alert('Solusi tidak ditemukan.');
-        return;
-    }
-
-    const nextBoard = solution[0];
-    const zeroIdx = getZeroIndex(state);
-    const tileIdx = nextBoard.indexOf(0);
-
-    const tileValue = state[tileIdx];
-
-    alert(`💡 Hint: Pindahkan ubin ${tileValue} ke kotak kosong!`);
+  }
+  return h;
 }
 
+class Heap {
+  constructor() { this.a = []; }
 
-//A*
-function solveAStar() {
-    if (isSolving) return;
-
-    if (isEqual(state, goalState)) {
-        checkWin();
-        return;
+  push(x) {
+    const a = this.a;
+    a.push(x);
+    let i = a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (a[p][0] <= a[i][0]) break;
+      [a[p], a[i]] = [a[i], a[p]];
+      i = p;
     }
+  }
 
-    isSolving = true;
-    solveBtn.disabled = true;
-
-    startTimer();
-    const solution = aStarSearch([...state]);
-
-    if (!solution || solution.length === 0) {
-        stopAI();
-        stopTimer();
-        alert('Solusi tidak ditemukan.');
-        return;
+  pop() {
+    const a = this.a, top = a[0], l = a.pop();
+    if (a.length) {
+      a[0] = l;
+      let i = 0;
+      for (;;) {
+        let m = i;
+        const L = 2 * i + 1, R = L + 1;
+        if (L < a.length && a[L][0] < a[m][0]) m = L;
+        if (R < a.length && a[R][0] < a[m][0]) m = R;
+        if (m === i) break;
+        [a[m], a[i]] = [a[i], a[m]];
+        i = m;
+      }
     }
+    return top;
+  }
 
-    let step = 0;
-    aiInterval = setInterval(() => {
-        if (step < solution.length) {
-            state = [...solution[step]];
-            steps++;
-            render();
-            step++;
-        } else {
-            clearInterval(aiInterval);
-            aiInterval = null;
-            isSolving = false;
-            solveBtn.disabled = false;
-            checkWin();
-        }
-    }, 350);
+  get size() { return this.a.length; }
 }
 
-function aStarSearch(startState) {
-    const openSet = [{ board: startState, g: 0, h: getManhattan(startState), f: getManhattan(startState), path: [] }];
-    const closedSet = new Set();
+function astar(b0, w, cap) {
+  const goal = key(SOLVED), heap = new Heap(), seen = new Map();
+  const nodes = [{ b: b0, par: -1, pos: -1 }];
+  heap.push([w * manh(b0), 0, 0]);
+  seen.set(key(b0), 0);
+  let exp = 0;
 
-    while (openSet.length > 0) {
-        openSet.sort((a, b) => a.f - b.f);
-        const current = openSet.shift();
+  while (heap.size) {
+    const [, g, id] = heap.pop();
+    const b = nodes[id].b, k = key(b);
 
-        if (isEqual(current.board, goalState)) return current.path;
-        closedSet.add(current.board.toString());
-
-        const zeroIdx = getZeroIndex(current.board);
-        for (let i = 0; i < 9; i++) {
-            if (isValidMove(i, zeroIdx)) {
-                const nextBoard = [...current.board];
-                [nextBoard[i], nextBoard[zeroIdx]] = [nextBoard[zeroIdx], nextBoard[i]];
-
-                if (closedSet.has(nextBoard.toString())) continue;
-
-                const g = current.g + 1;
-                const h = getManhattan(nextBoard);
-                const f = g + h;
-
-                const existing = openSet.find(item => isEqual(item.board, nextBoard));
-                if (!existing || g < existing.g) {
-                    if (!existing) {
-                        openSet.push({ board: nextBoard, g, h, f, path: [...current.path, nextBoard] });
-                    } else {
-                        existing.g = g;
-                        existing.f = f;
-                        existing.path = [...current.path, nextBoard];
-                    }
-                }
-            }
-        }
+    if (k === goal) {
+      const p = [];
+      for (let i = id; nodes[i].par >= 0; i = nodes[i].par) p.push(nodes[i].pos);
+      return p.reverse();
     }
-    return null;
-}
+    if (g > seen.get(k)) continue;
+    if (++exp > cap) return null;
 
-function getManhattan(board) {
-    let distance = 0;
-    for (let i = 0; i < 9; i++) {
-        const val = board[i];
-        if (val !== 0) {
-            const targetRow = Math.floor((val - 1) / 3);
-            const targetCol = (val - 1) % 3;
-            const currentRow = Math.floor(i / 3);
-            const currentCol = i % 3;
-            distance += Math.abs(currentRow - targetRow) + Math.abs(currentCol - targetCol);
-        }
+    const z = b.indexOf(0);
+    for (const p of nbrs(z)) {
+      const nb = b.slice();
+      nb[z] = nb[p];
+      nb[p] = 0;
+      const nk = key(nb), ng = g + 1;
+      if (!seen.has(nk) || ng < seen.get(nk)) {
+        seen.set(nk, ng);
+        nodes.push({ b: nb, par: id, pos: p });
+        heap.push([ng + w * manh(nb), ng, nodes.length - 1]);
+      }
     }
-    return distance;
+  }
+  return null;
 }
 
-function isEqual(b1, b2) {
-    return b1.every((val, idx) => val === b2[idx]);
+function solve(b0) {
+  for (const w of [CFG[N].w, 4, 12]) {
+    const r = astar(b0, w, N === 3 ? 1e7 : 120000);
+    if (r) return r;
+  }
+  return null;
 }
 
-function checkWin() {
-    if (isEqual(state, goalState)) {
-        stopTimer();
-        setTimeout(() => alert(`🎉 Selamat! Puzzle selesai dalam ${steps} langkah dan waktu ${timerElement.textContent.replace('⏱️ ', '')}!`), 100);
-    }
+function ensurePath(cb) {
+  if (path) return cb();
+  const g = gid, m = moves;
+  setMsg('⏳ Bot sedang berpikir...');
+  setTimeout(() => {
+    if (g !== gid || m !== moves) return;
+    path = solve(board.slice());
+    if (path) cb();
+    else setMsg('Bot tidak menemukan solusi, coba game baru.');
+  }, 30);
 }
 
-newGameBtn.addEventListener('click', newGame);
-restartBtn.addEventListener('click', restartPuzzle);
-solveBtn.addEventListener('click', solveAStar);
-showHintBtn.addEventListener('click', showHint);
+/* ---------- Hint & Auto Play ---------- */
+function updateHint() {
+  hintPos = -1;
+  if (done || !hintOn) return;
+  ensurePath(() => {
+    hintPos = path[0];
+    setMsg('💡 Geser tile ' + board[hintPos] + '. Sisa ' + (N === 3 ? 'minimal ' : 'sekitar ') + path.length + ' langkah.');
+    render();
+  });
+}
 
-newGame();
+function stopAuto() {
+  auto = false;
+  updateButtons();
+}
+
+function startAuto() {
+  if (done) return;
+  auto = true;
+  botUsed = true;
+  updateButtons();
+  (function step() {
+    if (!auto || done) return;
+    ensurePath(() => {
+      if (!auto || done) return;
+      setMsg('🤖 Bot bermain otomatis...');
+      tryMove(path[0], true);
+      setTimeout(step, CFG[N].ms);
+    });
+  })();
+}
+
+/* ---------- Event tombol ---------- */
+$('hintBtn').addEventListener('click', () => {
+  hintOn = !hintOn;
+  updateButtons();
+  if (!hintOn && !done && !auto) setMsg('');
+  updateHint();
+  render();
+});
+
+$('autoBtn').addEventListener('click', () => {
+  if (auto) {
+    stopAuto();
+    setMsg('');
+  } else {
+    startAuto();
+  }
+});
+
+$('newBtn').addEventListener('click', newGame);
+
+
+const tombol = document.querySelectorAll('.btns button');
+tombol.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    tombol.forEach((b) => b.classList.remove('aktif'));
+    btn.classList.add('aktif');
+  });
+});
+
+document.querySelectorAll('#levels button').forEach((b) =>
+  b.addEventListener('click', () => setLevel(+b.dataset.n))
+);
+
+setLevel(3);
