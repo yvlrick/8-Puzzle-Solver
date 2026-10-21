@@ -1,180 +1,192 @@
+:root {
+  --bg: #fff;
+  --card: #f1f5f9;
+  --text: #0f172a;
+  --muted: #64748b;
+  --tile: #2563eb;
+  --tile-t: #fff;
+  --hint: #f59e0b;
+  --board: #cbd5e1;
+  --btn: #e2e8f0;
+  --ok: #16a34a;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ========== Reset & Layout ========== */
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f4f6f9;
-    color: #333;
-    margin: 0;
-    padding: 0;
+  margin: 0;
 }
 
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 40px;
-    background: #ffffff;
-    border-bottom: 1px solid #e1e4e8;
+body {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 20px 14px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.logo {
-    font-weight: bold;
-    font-size: 18px;
-    color: #0366d6;
-}
-
-nav a {
-    text-decoration: none;
-    color: #586069;
-    margin-left: 20px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-nav a.active {
-    color: #0366d6;
-}
-
-.main-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 20px;
+main {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
 }
 
 h1 {
-    font-size: 22px;
-    color: #24292e;
-    margin-bottom: 20px;
+  margin: 0 0 4px;
+  font-size: 1.5rem;
 }
 
-.difficulty-selector {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+p.sub {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-.diff-btn {
-    background: #ffffff;
-    border: 1px solid #e1e4e8;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: #586069;
-    transition: all 0.2s;
+/* ========== Tombol ========== */
+button {
+  flex: 1;
+  padding: 12px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--btn);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
 }
 
-.diff-btn span {
-    font-size: 11px;
-    font-weight: normal;
-    color: #6a737d;
+button:hover {
+  filter: brightness(0.96);
 }
 
-.diff-btn.active {
-    background: #0366d6;
-    color: #ffffff;
-    border-color: #0366d6;
+button:active {
+  transform: scale(0.96);
 }
 
-.diff-btn.active span {
-    color: #e1f0ff;
+button:focus-visible {
+  outline: 3px solid var(--hint);
 }
 
-.stats-bar {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
+.btns {
+  display: flex;
+  gap: 8px;
 }
 
-.stat-item {
-    background: #ffffff;
-    border: 1px solid #e1e4e8;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #24292e;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+
+.btns button.aktif {
+  background: var(--tile);
+  color: #fff;
 }
 
-.board-wrapper {
-    background: #ffffff;
-    padding: 15px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e1e4e8;
-    margin-bottom: 20px;
+/* ========== Level ========== */
+.levels {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
-.board {
-    display: grid;
-    grid-template-columns: repeat(3, 85px);
-    grid-template-rows: repeat(3, 85px);
-    gap: 8px;
+.levels button {
+  padding: 9px 4px;
+  background: var(--card);
+  font-size: 0.85rem;
+}
+
+.levels button.on {
+  background: var(--tile);
+  color: #fff;
+}
+
+/* ========== Statistik ========== */
+.stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.stat b {
+  display: block;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ========== Papan & Tile ========== */
+#board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: var(--board);
+  touch-action: manipulation;
 }
 
 .tile {
-    background: #1976d2;
-    color: #ffffff;
-    font-size: 30px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-    cursor: pointer;
-    user-select: none;
-    box-shadow: 0 3px 6px rgba(25, 118, 210, 0.3);
-    transition: transform 0.1s, background-color 0.2s;
+  position: absolute;
+  padding: 3px;
+  transition: left 0.15s ease, top 0.15s ease;
 }
 
-.tile:hover:not(.empty) {
-    background: #115293;
+.tile div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--tile-t);
+  font-size: var(--fs, 2rem);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.2s, background 0.2s;
 }
 
-.tile.empty {
-    background: #f1f3f5;
-    box-shadow: none;
-    cursor: default;
-    border: 2px dashed #d8dee4;
+.tile.hint div {
+  background: var(--hint);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--hint);
 }
 
-.controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+/* ========== Pesan & Tips ========== */
+#msg {
+  min-height: 2.6em;
+  margin: 14px 0 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
-.action-btn {
-    background: #ffffff;
-    color: #24292e;
-    border: 1px solid #e1e4e8;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: background 0.2s;
-}
-
-.action-btn:hover {
-    background: #f3f4f6;
-}
-
-.action-btn.primary {
-    background: #0366d6;
-    color: #ffffff;
-    border-color: #0366d6;
-}
-
-.action-btn.primary:hover {
-    background: #005cc5;
+#msg.win {
+  color: var(--ok);
+  font-weight: 600;
 }
 
 .tip {
-    font-size: 13px;
-    color: #586069;
-    margin-top: 10px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
