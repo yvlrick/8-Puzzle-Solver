@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Game Hub - 8-Puzzle A* Solver</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">🧩 Puzzle Game Hub</div>
+    </header>
+
+    <main class="main-container">
+        <h1>8-Puzzle Solver.</h1>
+
+
+        <div class="stats-bar">
+            <div class="stat-item" id="timer">⏱️ 00:00</div>
+            <div class="stat-item" id="stepCount">👆 0</div>
+        </div>
+
+        <div class="board-wrapper">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="controls">
+            <button id="newGameBtn" class="action-btn">🔀 New Game</button>
+            <button id="restartBtn" class="action-btn">🔄 Restart Puzzle</button>
+            <button id="hintBtn" class="action-btn primary">💡 Solve with A*</button>
+        </div>
+        
+        <p class="tip">Tip: Gunakan tombol panah (arrow keys) di keyboard untuk memindahkan ubin.</p>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
